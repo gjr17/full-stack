@@ -1,0 +1,163 @@
+Implementacion:
+
+1 - Se agrego a las subnets los tags correspondientes segun la documentacion para EKS:
+
+						kubernetes.io/cluster/JUPITEC-QA	shared
+						kubernetes.io/cluster/OPENPASS-BETA	shared
+						kubernetes.io/role/internal-elb	1
+
+2 - Crear Node-Group Jupitec-QA Asociado a subnets subnet-04febc47f9902d095 - subnet-0ad5af64526d20b5b 
+
+						Parametros: Instance types= c6i.xlarge
+									AMI type = AL2_x86_64
+									Disk size = 100 GiB
+									Maximum unavailable = 100%
+
+3 - Crear Node-Group Openpass-QA Asociado a subnets subnet-04febc47f9902d095 - subnet-0ad5af64526d20b5b 
+
+						Parametros: Instance types= c6i.xlarge
+									AMI type = AL2_x86_64
+									Disk size = 100 GiB
+									Maximum unavailable = 50%
+
+4 - Re-Deployar los ingress de Jupitec-QA y Openpass-QA.
+
+				JUPITEC-QA
+
+				PATH =	/home/gjruiz/subnets/qa/jupitec/ingress/nuevos
+
+				YAML =
+
+						b2b-integration-ingress.new.listo.yaml
+						backo-web-ingress.new.listo.yaml
+						bff-ingress-internal.new.listo.yaml
+						bff-ingress.new.listo.yaml
+						bff-service-private-public.new.listo.yaml
+						coelsa-qr-acceptor-service-ingress.new.listo.yaml
+						rtd-ingress.new.listo.yaml
+						web-personal-pay-ingress.new.listo.yaml
+
+				OPENPASS-QA
+
+				PATH =	/home/gjruiz/subnets/qa/op/ingress/nuevos
+
+				YAML =
+
+						bhub-ingress.new.listo.yaml
+						bhub-ingress-public-v2.new.listo.yaml
+						bind-ingress.new.listo.yaml
+						coelsa-inbound.new.listo.yaml
+						mrp-qa-v2.new.listo.yaml
+						rabbitmq-ingress.new.listo.yaml
+
+
+5 - Verificar que se generaron los NLB correspondientes a los servicios externos.
+
+				JUPITEC-QA
+
+				NLB-JUPITEC-QA-207976eee4733935.elb.us-east-1.amazonaws.com (Se comunica con el ALB internal-ca219ae1-default-rtdingres-0fa1-363300144.us-east-1.elb.amazonaws.com)
+
+				OPENPASS-QA
+
+				bhub-rui                     LoadBalancer   172.20.243.18    k8s-default-bhubrui-457627bcf6-5fabf4bc1add6da3.elb.us-east-1.amazonaws.com    9051:32571/TCP                             
+				service-opiswitch            LoadBalancer   172.20.230.88    k8s-default-serviceo-1ac7fae7eb-274f229cf57874fa.elb.us-east-1.amazonaws.com   6050:30685/TCP                                 
+				service-opiswitch-internal   LoadBalancer   172.20.105.253   k8s-default-serviceo-a1d0e006c9-d9e870821028e85d.elb.us-east-1.amazonaws.com   6050:30919/TCP                                 
+				rabbitmq-amqp                LoadBalancer   172.20.224.235   k8s-default-rabbitmq-505c17945c-df6eef8016a1d274.elb.us-east-1.amazonaws.com   5672:31698/TCP                                 
+
+6 - Verificar con Seguridad las IP que son necesarias cambiar en el FW.
+
+7 - Pruebas
+
+https://integration-qa.personalpay.dev/health (Public)
+https://qa.personalpay.dev/auth/health (Public)	 
+https://backo-web.qa.personalpay.dev/ (Public)
+https://bhub.qa.personalpay.dev/openpass (VPN)
+https://monitor.bhub.qa.personalpay.dev/grafana/login (VPN)
+https://internal.qa.personalpay.dev/auth/health (VPN)
+https://rtd.qa.personalpay.dev/health (VPN)
+https://web.qa.personalpay.dev/ (VPN)
+
+Rollback:
+
+1 - Apuntar nuevamente al node-group anterior Jupitec-QA (jupitec-qa-ng) y Openpass-QA (eks-ng-subred-1-2)
+
+2 - Verificar que se generaron los NLB correspondientes a los servicios externos.
+
+				JUPITEC-QA
+
+				NLB-JUPITEC-QA-207976eee4733935.elb.us-east-1.amazonaws.com (Se comunica con el ALB internal-ca219ae1-default-rtdingres-0fa1-363300144.us-east-1.elb.amazonaws.com)
+
+				OPENPASS-QA
+
+				bhub-rui                     LoadBalancer   172.20.243.18    k8s-default-bhubrui-457627bcf6-5fabf4bc1add6da3.elb.us-east-1.amazonaws.com    9051:32571/TCP                             
+				service-opiswitch            LoadBalancer   172.20.230.88    k8s-default-serviceo-1ac7fae7eb-274f229cf57874fa.elb.us-east-1.amazonaws.com   6050:30685/TCP                                 
+				service-opiswitch-internal   LoadBalancer   172.20.105.253   k8s-default-serviceo-a1d0e006c9-d9e870821028e85d.elb.us-east-1.amazonaws.com   6050:30919/TCP                                 
+				rabbitmq-amqp                LoadBalancer   172.20.224.235   k8s-default-rabbitmq-505c17945c-df6eef8016a1d274.elb.us-east-1.amazonaws.com   5672:31698/TCP        
+
+3 - Verificar con Seguridad las IP que son necesarias cambiar en el FW.
+
+4 - Pruebas
+
+https://integration-qa.personalpay.dev/health (Public)
+https://qa.personalpay.dev/auth/health (Public)	 
+https://backo-web.qa.personalpay.dev/ (Public)
+https://bhub.qa.personalpay.dev/openpass (VPN)
+https://monitor.bhub.qa.personalpay.dev/grafana/login (VPN)
+https://internal.qa.personalpay.dev/auth/health (VPN)
+https://rtd.qa.personalpay.dev/health (VPN)
+https://web.qa.personalpay.dev/ (VPN)
+
+docker pull bitnami/oauth2-proxy:latest
+
+
+quay.io/oauth2-proxy/oauth2-proxy:latest
+
+[2022/10/06 13:12:41] [main.go:60] ERROR: Failed to initialise OAuth2 Proxy: error intiailising provider: could not create provider data: error building OIDC ProviderVerifier: invalid provider verifier options: missing required setting: issuer-url
+
+
+--oidc-issuer-url="https://gitlab.com/oauth/"
+
+https://kube-dashboard.devops.personalpay.dev/
+
+
+https://gitlab.com/oauth/authorize?redirect_uri=https%3A%2F%2Fjenkins.tools.personalpay.dev%2FsecurityRealm%2FfinishLogin%3F&response_type=code&client_id=76b3eb320eb746d1afd1a3f6dd33a85feb3bb15bdc0ef62bbed7200109ee3c3e&scope=api
+https://gitlab.com/oauth/authorize?response_type=code&client_id=7541dfd551c6160df8c9f46323531f8dbda9e88707a6c3b7f841522d43c84ce6&redirect_uri=https%3A%2F%2Fsonar.personalpay.dev%2Foauth2%2Fcallback%2Fgitlab&scope=api&state=oek379cmnfqc439mv44p3uqhf3
+
+07 21 Nomviembre  14 2 Semanas
+
+2 octubre     1 octubre
+
+2 noviembre   2 noviembre
+
+3 diciembre   2 Diciembre
+
+
+
+
+
+
+
+
+
+[0:42 p. m., 5/10/2022] Nicolás Pettinato: Para poder entregarle un certificado. Necesitamos que nos envíen un request de firma de certificado (.CSR) para poder firmarlo con nuestra CA.
+
+
+
+Las instrucciones Openssl son:  
+Generar key nuevo certificado
+openssl genrsa -des3 -out client.key 2048
+
+
+
+
+Generar pedido de firma
+openssl req -new -key client.key -out nombrecliente_prd.csr
+[0:42 p. m., 5/10/2022] Nicolás Pettinato: con esto les enviamos el nuevo
+[0:43 p. m., 5/10/2022] Nicolás Pettinato: enviar por mail a  seguridadapibank@bancoindustrial.com.ar;avazquez@bancoindustrial.com.ar;soporteapibank@bind.com.ar
+
+
+personalpay
+
+openssl rsa -in client.key -out clientsinpw.key
+
+
